@@ -45,11 +45,11 @@ if __name__ == "__main__":
 
     # 2. Create Tornado application
     app = tornado.web.Application(
-            [(r"/", IndexHandler)] + ChatRouter.urls
+            [(r"/", IndexHandler)] + ChatRouter.urls, debug=True
     )
 
-    # 3. Make Tornado app listen on port 8080
-    app.listen(8080)
+    # 3. Make Tornado app listen on port 80
+    app.listen(80)
 
     # 4. Start IOLoop
     tornado.ioloop.IOLoop.instance().start()
