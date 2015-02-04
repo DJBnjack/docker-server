@@ -3,11 +3,26 @@
     Simple sockjs-tornado chat application. By default will listen on port 8080.
 """
 from apscheduler.schedulers.tornado import TornadoScheduler
-from time import gmtime, strftime
+import requests
 import tornado.ioloop
 import tornado.web
-
+import os
 import sockjs.tornado
+import json
+
+def to_image_ids(list_of_image):
+    image_ids = []
+    for line in list_of_image:
+        if line[0] == 'REPOSITORY':
+            pass
+        else:
+            image_ids.append(line[2])
+
+    return image_ids
+
+def get_info(image_id):
+    f = os.popen('docker inspect ' + image_id)
+    return json.loads(f.read())[0]
 
 
 class IndexHandler(tornado.web.RequestHandler):
@@ -29,18 +44,24 @@ class ChatConnection(sockjs.tornado.SockJSConnection):
     def on_open(self, info):
         # Add client to the clients list
         self.participants.add(self)
+        self.on_tick()
 
         if not self.scheduler.running:
             self.scheduler.start()
-            self.scheduler.add_job(self.on_tick, 'interval', seconds=2)
+            self.scheduler.add_job(self.on_tick, 'interval', seconds=10)
 
     def on_tick(self):
-        time = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-        self.broadcast(self.participants, time)
+        images = requests.get("http://localhost:4243/images/json").json()
+
+        containers = requests.get("http://localhost:4243/containers/json").json()
+
+        info = {'images': images, 'containers': containers}
+        self.broadcast(self.participants, json.dumps(info))
 
     def on_close(self):
         # Remove client from the clients list and broadcast leave message
         self.participants.remove(self)
+
 
 if __name__ == "__main__":
     import logging
